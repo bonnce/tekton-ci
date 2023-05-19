@@ -1,0 +1,1 @@
+kubectl create secret generic docker-credentials --from-file=config.json=$HOME/.docker/config.json
