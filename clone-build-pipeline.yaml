@@ -11,6 +11,7 @@ spec:
   - name: repo-url
     type: string
     description: The git repo URL to clone from.
+  - name: body
   workspaces:
   - name: shared-data
     description: | 
@@ -27,6 +28,16 @@ spec:
     params:
     - name: url
       value: $(params.repo-url)
+  - name: body-echo
+    taskSpec:
+      params:
+      - name: body
+      steps:
+      - image: ubuntu
+        script: echo "body $(params.body)"
+    params:
+    - name: body
+      value: $(params.body)
   - name: build-push
     runAfter: ["fetch-source"]
     taskRef:

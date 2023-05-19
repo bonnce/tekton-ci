@@ -1,0 +1,12 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: EventListener
+metadata:
+  name: push-listener
+spec:
+  serviceAccountName: tekton-robot
+  triggers:
+    - name: push-trigger
+      bindings:
+      - ref: trigger-push-bind
+      template:
+        ref: trigger-push

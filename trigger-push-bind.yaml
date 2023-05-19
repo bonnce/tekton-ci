@@ -1,0 +1,12 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerBinding
+metadata:
+  name: trigger-push-bind
+spec:
+  params:
+  - name: repo-url
+    value: https://github.com/bonnce/node-source.git
+  - name: image-reference
+    value: bonnce/node-source:1.2
+  - name: trigger-body
+    value: $(body.repository.head_commit.message)
