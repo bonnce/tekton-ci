@@ -6,6 +6,27 @@ spec:
   serviceAccountName: tekton-robot
   triggers:
     - name: push-trigger
+      interceptors:
+        - ref:
+            name: "github"
+            kind: ClusterInterceptor
+            apiVersion: triggers.tekton.dev
+          params:
+          - name: "secretRef"
+            value:
+              secretName: github-secret
+              secretKey: secretToken
+          - name: "eventTypes"
+            value: ["push"]
+        - ref:
+            name: cel
+          params:
+            - name: "overlays"
+              value:
+              - key: branch_name
+                expression: "body.ref.split('/')[2]"
+              - key: docker_version
+                expression: "body.head_commit.message.split(' ')[body.head_commit.message.split(' ').size()-1]"
       bindings:
       - ref: trigger-push-bind
       template:

@@ -28,16 +28,6 @@ spec:
     params:
     - name: url
       value: $(params.repo-url)
-  - name: body-echo
-    taskSpec:
-      params:
-      - name: body
-      steps:
-      - image: ubuntu
-        script: echo "body $(params.body)"
-    params:
-    - name: body
-      value: $(params.body)
   - name: build-push
     runAfter: ["fetch-source"]
     taskRef:

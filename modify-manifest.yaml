@@ -1,0 +1,22 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: hello
+spec:
+  steps:
+    - name: modify and push
+      image: alpine
+      script: |
+        #!/bin/sh
+        sed -ire 's/image:.*/image: $(params.image_reference)/i' deployment.yaml
+        rm -f deployment.yamlre
+        git add .
+        git commit -m 'image change $(params.image_reference)'
+        git push
+  workspaces:
+    - description: Holds the context and Dockerfile
+      name: source
+    - description: Includes a docker `config.json`
+      mountPath: /kaniko/.docker
+      name: dockerconfig
+      optional: true
