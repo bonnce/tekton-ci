@@ -1,0 +1,36 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  generateName: test-git-cli-run-
+spec:
+  serviceAccountName: git-ssh-bot
+  pipelineRef:
+    name: test-git-cli-pipe
+  podTemplate:
+    securityContext:
+      fsGroup: 65532
+  workspaces:
+  - name: shared-data
+    volumeClaimTemplate:
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+  params:
+  - name: repo-url
+    value: $(tt.params.ssh-url)
+  - name: script
+    value: |
+      git pull origin master
+      git checkout master
+      sed -ire "s/image:.*/image: $(tt.params.image_reference)/i" deployment.yaml
+      rm -f deployment.yamlre
+      git add .
+      git commit -m "deployment's image change to $(tt.params.image_reference)"
+      git push origin master
+  - name: git-user
+    value: $(tt.params.git-user)
+  - name: git-email
+    value: $(tt.params.git-email)

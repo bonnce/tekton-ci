@@ -27,6 +27,8 @@ spec:
                 expression: "body.ref.split('/')[2]"
               - key: docker_version
                 expression: "body.head_commit.message.split(' ')[body.head_commit.message.split(' ').size()-1]"
+              - key: ssh-url-manifest
+                expression: "body.repository.ssh_url.replace('.git','-manifest.git')"
       bindings:
       - ref: trigger-push-bind
       template:

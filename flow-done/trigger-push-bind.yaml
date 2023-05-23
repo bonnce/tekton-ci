@@ -8,5 +8,9 @@ spec:
     value: $(body.repository.clone_url)
   - name: image-reference
     value: bonnce/$(body.repository.name):$(extensions.docker_version)
-  - name: trigger-body
-    value: $(extensions.branch_name)
+  - name: ssh-url
+    value: $(extensions.ssh-url-manifest)
+  - name: git-user
+    value: $(body.repository.owner.name)
+  - name: git-email
+    value: $(body.repository.owner.email)

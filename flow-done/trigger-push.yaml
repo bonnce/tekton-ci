@@ -1,0 +1,75 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: trigger-push
+spec:
+  params:
+  - name: repo-url
+  - name: image-reference
+  - name: ssh-url
+  - name: git-user
+  - name: git-email
+  resourcetemplates:
+  - apiVersion: tekton.dev/v1beta1
+    kind: PipelineRun
+    metadata:
+      generateName: clone-build-run-
+    spec:
+      pipelineRef:
+        name: clone-build-pipe
+      podTemplate:
+        securityContext:
+          fsGroup: 65532
+      workspaces:
+      - name: shared-data
+        volumeClaimTemplate:
+          spec:
+            accessModes:
+            - ReadWriteOnce
+            resources:
+              requests:
+                storage: 1Gi
+      - name: docker-credentials
+        secret:
+          secretName: docker-credentials
+      params:
+      - name: repo-url
+        value: $(tt.params.repo-url)
+      - name: image-reference
+        value: $(tt.params.image-reference)
+  - apiVersion: tekton.dev/v1beta1
+    kind: PipelineRun
+    metadata:
+      generateName: manifest-clone-push-run-
+    spec:
+      serviceAccountName: git-ssh-bot
+      pipelineRef:
+        name: manifest-clone-push
+      podTemplate:
+        securityContext:
+          fsGroup: 65532
+      workspaces:
+      - name: shared-data
+        volumeClaimTemplate:
+          spec:
+            accessModes:
+            - ReadWriteOnce
+            resources:
+              requests:
+                storage: 1Gi
+      params:
+      - name: repo-url
+        value: $(tt.params.ssh-url)
+      - name: script
+        value: |
+          git pull origin master
+          git checkout master
+          sed -ire "s|image:.*|image: $(tt.params.image-reference)|i" deployment.yaml
+          rm -f deployment.yamlre
+          git add .
+          git commit -m "deployment image change to $(tt.params.image-reference)"
+          git push origin master
+      - name: git-user
+        value: $(tt.params.git-user)
+      - name: git-email
+        value: $(tt.params.git-email)

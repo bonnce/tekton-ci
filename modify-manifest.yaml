@@ -1,13 +1,15 @@
 apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
-  name: hello
+  name: modify-manifest
 spec:
   steps:
     - name: modify and push
-      image: alpine
+      workingDir: $(workspaces.source.path)
+      image: ubuntu 
       script: |
         #!/bin/sh
+        git remote add origin
         sed -ire 's/image:.*/image: $(params.image_reference)/i' deployment.yaml
         rm -f deployment.yamlre
         git add .
@@ -16,7 +18,3 @@ spec:
   workspaces:
     - description: Holds the context and Dockerfile
       name: source
-    - description: Includes a docker `config.json`
-      mountPath: /kaniko/.docker
-      name: dockerconfig
-      optional: true
