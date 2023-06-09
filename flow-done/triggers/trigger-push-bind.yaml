@@ -7,10 +7,16 @@ spec:
   - name: repo-url
     value: $(body.repository.clone_url)
   - name: image-reference
-    value: bonnce/$(body.repository.name):$(extensions.docker_version)
+    value: bonnce/$(body.repository.name)
   - name: ssh-url
     value: $(extensions.ssh-url-manifest)
   - name: git-user
     value: $(body.repository.owner.name)
   - name: git-email
     value: $(body.repository.owner.email)
+  - name: commit_length
+    value: $(extensions.commit-lenght)
+  - name: added
+    value: $(extensions.files-added)
+  - name: modified
+    value: $(extensions.files-modified)

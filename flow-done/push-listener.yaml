@@ -25,10 +25,19 @@ spec:
               value:
               - key: branch_name
                 expression: "body.ref.split('/')[2]"
+              # - key: docker_version
+              #   expression: "body.head_commit.message.split(' ')[body.head_commit.message.split(' ').size()-1]"
               - key: docker_version
-                expression: "body.head_commit.message.split(' ')[body.head_commit.message.split(' ').size()-1]"
+                expression: "1.1.1"
               - key: ssh-url-manifest
                 expression: "body.repository.ssh_url.replace('.git','-manifest.git')"
+              - key: commit-lenght
+                expression: "body.commits.size()"
+              - key: files-added
+                expression: "body.head_commit.added.size() || 1"
+              - key: files-modified
+                expression: "body.head_commit.modified.size() || 1"
+              
       bindings:
       - ref: trigger-push-bind
       template:

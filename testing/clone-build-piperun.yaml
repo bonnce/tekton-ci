@@ -4,10 +4,11 @@ metadata:
   generateName: clone-build-run-
 spec:
   pipelineRef:
-    name: clone-build-pipe
+    name: clone-build-push
   podTemplate:
     securityContext:
       fsGroup: 65532
+  serviceAccountName: git-ssh-bot
   workspaces:
   - name: shared-data
     volumeClaimTemplate:
@@ -22,6 +23,20 @@ spec:
       secretName: docker-credentials
   params:
   - name: repo-url
-    value: https://github.com/bonnce/node-source.git
+    value: git@github.com:bonnce/node-source-manifest.git
+  - name: git-user
+    value: bonnce
+  - name: git-email
+    value: bonce_reloko@hotmail.com
+  - name: findInFile
+    value: "image:.*"
   - name: image-reference
-    value: bonnce/node-source:1.1
+    value: "image: bonnce/node-source"
+  - name: file-name-replace
+    value: deployment.yaml
+  - name: commit-message
+    value: "image update"
+  - name: files-added-count
+    value: "2"
+  - name: files-modified-count
+    value: "4"

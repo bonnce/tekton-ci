@@ -1,0 +1,79 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: standard-flow
+spec:
+  description: | 
+    This pipeline clones a git repo, then echoes the README file to the stdout.
+  params:
+  - name: image-reference
+    type: string
+  - name: git-user
+    type: string
+  - name: git-email
+    type: string
+  - name: repo-url
+    type: string
+    description: The git repo URL to clone from.
+  - name: repo-url-manifest
+    type: string
+    description: The git repo URL to clone from.
+  workspaces:
+  - name: shared-data
+    description: | 
+      This workspace contains the cloned repo files, so they can be read by the
+      next task.
+  - name: docker-credentials
+  tasks:
+  - name: fetch-source
+    taskRef:
+      name: git-clone
+    workspaces:
+    - name: output
+      workspace: shared-data
+    params:
+    - name: url
+      value: $(params.repo-url)
+  - name: build-push
+    runAfter: ["fetch-source"]
+    taskRef:
+      name: kaniko
+    workspaces:
+    - name: source
+      workspace: shared-data
+    - name: dockerconfig
+      workspace: docker-credentials
+    params:
+    - name: IMAGE
+      value: "$(params.image-reference):$(tasks.fetch-source.results.commit)"
+
+  - name: fetch-source-manifest
+    runAfter: ["build-push"]
+    taskRef:
+      name: git-clone
+    workspaces:
+    - name: output
+      workspace: shared-data
+    params:
+    - name: url
+      value: $(params.repo-url-manifest)
+  - name: update-push
+    runAfter: ["fetch-source-manifest"]
+    taskRef:
+      name: git-update
+    workspaces:
+    - name: source
+      workspace: shared-data
+    params:
+    - name: userName
+      value: $(params.git-user)
+    - name: userEmail
+      value: $(params.git-email)
+    - name: fileName
+      value: "deployment.yaml"
+    - name: replaceInFile
+      value: "image: $(params.image-reference):$(tasks.fetch-source.results.commit)"
+    - name: findInFile
+      value: "image:.*"
+    - name: commitMessage
+      value: "update image $(params.image-reference):$(tasks.fetch-source.results.commit)"

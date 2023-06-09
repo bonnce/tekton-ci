@@ -1,0 +1,49 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: trigger-push
+spec:
+  params:
+  - name: repo-url
+  - name: image-reference
+  - name: ssh-url
+  - name: git-user
+  - name: git-email
+  - name: commit_length
+  - name: added
+  - name: modified
+  resourcetemplates:
+  - apiVersion: tekton.dev/v1beta1
+    kind: PipelineRun
+    metadata:
+      generateName: manifest-clone-push-run-
+    spec:
+      serviceAccountName: git-ssh-bot
+      pipelineRef:
+        name: standard-flow
+      podTemplate:
+        securityContext:
+          fsGroup: 65532
+      workspaces:
+      - name: shared-data
+        volumeClaimTemplate:
+          spec:
+            accessModes:
+            - ReadWriteOnce
+            resources:
+              requests:
+                storage: 1Gi
+      - name: docker-credentials
+        secret:
+          secretName: docker-credentials
+      params:
+      - name: repo-url
+        value: $(tt.params.repo-url)
+      - name: repo-url-manifest
+        value: $(tt.params.ssh-url)
+      - name: git-user
+        value: $(tt.params.git-user)
+      - name: git-email
+        value: $(tt.params.git-email)
+      - name: image-reference
+        value: $(tt.params.image-reference)

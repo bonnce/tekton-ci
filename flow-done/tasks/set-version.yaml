@@ -1,0 +1,88 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: set-version
+spec:
+  description: >-
+    this task create a new version tag for build, based on amount of changes and files added
+  workspaces:
+    - name: source
+      description: The git repo will be cloned onto the volume backing this Workspace.
+  params:
+    - name: verbose
+      description: Log the commands that are executed during `git-push`'s operation.
+      type: string
+      default: "true"
+    - name: filesAdded
+      description: ammount of files added in the commit.
+      type: string
+      default: "0"
+    - name: filesModified
+      description: ammount of files modified in the commit.
+      type: string
+      default: "0"
+    - name: gitImage
+      description: The base image for the task.
+      type: string
+      default: cgr.dev/chainguard/git:root-2.39@sha256:7759f87050dd8bacabe61354d75ccd7f864d6b6f8ec42697db7159eccd491139
+  results:
+    - name: version
+      description: The version tag.
+  steps:
+    - name: push
+      image: "$(params.gitImage)"
+      workingDir: $(workspaces.source.path)
+      env:
+      - name: PARAM_VERBOSE
+        value: $(params.verbose)
+      - name: WORKSPACE_SOURCE_PATH
+        value: $(workspaces.source.path)
+      - name: FILES_MODIFIED_COUNT
+        value: $(params.filesModified)
+      - name: FILES_ADDED_COUNT
+        value: $(params.filesAdded)
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+      script: |
+        #!/usr/bin/env sh
+        set -eu
+
+        if [ "${PARAM_VERBOSE}" = "true" ] ; then
+          set -x
+        fi
+
+        git config --global --add safe.directory "${WORKSPACE_SOURCE_PATH}"
+        git fetch --all
+        git checkout master
+
+        if [ -z "$(git tag)" ] ; then
+          printf "%s" "1.0.0" > $(results.version.path)
+          exit 0
+        fi
+
+        TAG="$(git describe --abbrev=0)" 
+
+        # VERSION=(${TAG//"."/ })
+        PATCH="$(echo $TAG | cut -d'.' -f3)"
+        MINOR="$(echo $TAG | cut -d'.' -f2)"
+        MAJOR="$(echo $TAG | cut -d'.' -f1)"
+
+        if [ $FILES_MODIFIED_COUNT -ge 1 ] && [ $FILES_MODIFIED_COUNT -lt 4 ] ; then
+          PATCH="$(($PATCH+1))"
+        fi
+
+        if [ $FILES_MODIFIED_COUNT -ge 4 ] || [ $PATCH -ge 10 ] ; then
+          MINOR="$(($MINOR+1))"
+          PATCH="0"
+        fi
+
+        if [ $FILES_ADDED_COUNT -ge 1 ] || [ $MINOR -ge 10 ] ; then
+          MAJOR="$(($MAJOR+1))"
+          MINOR="0"
+          PATCH="0"
+        fi
+
+        RESULT_TAG="${MAJOR}.${MINOR}.${PATCH}"
+
+        printf "%s" "${RESULT_TAG}" > "$(results.version.path)"

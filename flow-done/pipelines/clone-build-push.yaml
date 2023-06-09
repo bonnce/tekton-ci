@@ -1,0 +1,78 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: clone-build-push
+spec:
+  description: | 
+    This pipeline clones a git repo, then echoes the README file to the stdout.
+  params:
+  - name: git-user
+    type: string
+  - name: git-email
+    type: string
+  - name: findInFile
+    type: string
+  - name: image-reference
+    type: string
+  - name: file-name-replace
+    type: string
+  - name: commit-message
+    type: string
+  - name: files-added-count
+    type: string
+  - name: files-modified-count
+    type: string
+  - name: repo-url
+    type: string
+    description: The git repo URL to clone from.
+  workspaces:
+  - name: shared-data
+    description: | 
+      This workspace contains the cloned repo files, so they can be read by the
+      next task.
+  tasks:
+  - name: fetch-source-manifest
+    taskRef:
+      name: git-clone
+    workspaces:
+    - name: output
+      workspace: shared-data
+    params:
+    - name: url
+      value: $(params.repo-url)
+  - name: get-image-version
+    runAfter: ["fetch-source-manifest"]
+    taskRef:
+      name: set-version
+    workspaces:
+    - name: source
+      workspace: shared-data
+    params:
+    - name: filesAdded
+      value: $(params.files-added-count)
+    - name: filesModified
+      value: $(params.files-modified-count)
+  - name: build-push
+    runAfter:
+      - fetch-source-manifest
+      - get-image-version
+    taskRef:
+      name: git-update
+    workspaces:
+    - name: source
+      workspace: shared-data
+    params:
+    - name: userName
+      value: $(params.git-user)
+    - name: userEmail
+      value: $(params.git-email)
+    - name: fileName
+      value: $(params.file-name-replace)
+    - name: replaceInFile
+      value: "$(params.image-reference):$(tasks.get-image-version.results.version)"
+    - name: findInFile
+      value: $(params.findInFile)
+    - name: gitTag
+      value: $(tasks.get-image-version.results.version)
+    - name: commitMessage
+      value: "$(params.commit-message) $(tasks.get-image-version.results.version)"

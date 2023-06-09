@@ -6,7 +6,11 @@ spec:
   description: | 
     This pipeline clones a git repo, then echoes the README file to the stdout.
   params:
-  - name: script
+  - name: file-name-replace
+    type: string
+  - name: image-reference
+    type: string
+  - name: commit-message
     type: string
   - name: git-user
     type: string
@@ -33,7 +37,7 @@ spec:
   - name: build-push
     runAfter: ["fetch-source-manifest"]
     taskRef:
-      name: git-cli
+      name: git-update
     workspaces:
     - name: source
       workspace: shared-data
@@ -44,3 +48,13 @@ spec:
       value: $(params.git-user)
     - name: GIT_USER_EMAIL
       value: $(params.git-email)
+    - name: fileName
+      value: $(params.file-name-replace)
+    - name: replaceInFile
+      value: "$(params.image-reference):$(tasks.get-image-version.results.version)"
+    - name: findInFile
+      value: $(params.findInFile)
+    - name: gitTag
+      value: $(tasks.get-image-version.results.version)
+    - name: commitMessage
+      value: "$(params.commit-message) $(tasks.get-image-version.results.version)"
