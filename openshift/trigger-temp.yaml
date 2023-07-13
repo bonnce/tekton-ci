@@ -1,0 +1,46 @@
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: TriggerTemplate
+metadata:
+  name: trigger-push
+spec:
+  params:
+    - name: repo-url
+    - name: repo-branch
+    - name: image-reference
+    - name: registry
+    - name: manifest-url
+    - name: git-user
+    - name: git-email
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1beta1
+      kind: PipelineRun
+      metadata:
+        generateName: standard-flow-run-
+      spec:
+        params:
+          - name: repo-url
+            value: $(tt.params.repo-url)
+          - name: repo-branch
+            value: $(tt.params.repo-branch)
+          - name: repo-url-manifest
+            value: $(tt.params.manifest-url)
+          - name: git-user
+            value: $(tt.params.git-user)
+          - name: git-email
+            value: $(tt.params.git-email)
+          - name: image-reference
+            value: $(tt.params.image-reference)
+          - name: registry
+            value: $(tt.params.registry)
+        pipelineRef:
+          name: standard-flow
+        serviceAccountName: tekton-bitbucket-auth
+        workspaces:
+          - name: shared-data
+            volumeClaimTemplate:
+              spec:
+                accessModes:
+                  - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: 1Gi

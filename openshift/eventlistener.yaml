@@ -1,0 +1,35 @@
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: EventListener
+metadata:
+  name: push-listener
+spec:
+  serviceAccountName: tekton-elistener
+  triggers:
+    - bindings:
+        - kind: TriggerBinding
+          ref: trigger-push-bind
+      interceptors:
+        - params:
+            - name: secretRef
+              value:
+                secretKey: secretToken
+                secretName: webhook-bitbucket-secret
+            - name: eventTypes
+              value:
+                - 'repo:refs_changed'
+          ref:
+            apiVersion: triggers.tekton.dev
+            kind: ClusterInterceptor
+            name: bitbucket
+        - params:
+            - name: overlays
+              value:
+                - expression: >-
+                    body.repository.links.clone[1].href.replace(".git","-manifest.git")
+                  key: url-manifest
+          ref:
+            kind: ClusterInterceptor
+            name: cel
+      name: push-trigger
+      template:
+        ref: trigger-push

@@ -1,0 +1,20 @@
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: TriggerBinding
+metadata:
+  name: trigger-push-bind
+spec:
+  params:
+    - name: repo-url
+      value: '$(body.repository.links.clone[1].href)'
+    - name: repo-branch
+      value: '$(body.changes[0].ref.displayId)'
+    - name: image-reference
+      value: <realm>/$(body.repository.name)
+    - name: registry
+      value: <registry>
+    - name: manifest-url
+      value: $(extensions.url-manifest)
+    - name: git-user
+      value: $(body.actor.name)
+    - name: git-email
+      value: $(body.actor.emailAddress)

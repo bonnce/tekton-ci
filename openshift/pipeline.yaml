@@ -1,0 +1,100 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: standard-flow
+spec:
+  description: |
+    This pipeline clones a git repo, then echoes the README file to the stdout.
+  params:
+    - name: image-reference
+      type: string
+    - name: registry
+      type: string
+    - name: git-user
+      type: string
+    - name: git-email
+      type: string
+    - description: The git repo URL to clone from.
+      name: repo-url
+      type: string
+    - description: The git repo URL to clone from.
+      name: repo-url-manifest
+      type: string
+    - description: The git repo URL to clone from.
+      name: repo-branch
+      type: string
+  tasks:
+    - name: fetch-source
+      params:
+        - name: url
+          value: $(params.repo-url)
+        - name: revision
+          value: $(params.repo-branch)
+      taskRef:
+        kind: ClusterTask
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: shared-data
+    - name: build-push
+      params:
+        - name: IMAGE
+          value: >-
+            $(params.image-reference)-$(params.repo-branch):$(tasks.fetch-source.results.commit)
+        - name: TLSVERIFY
+          value: 'false'
+        - name: REGISTRY
+          value: $(params.registry)
+      runAfter:
+        - fetch-source
+      taskRef:
+        kind: Task
+        name: buildah-hub
+      workspaces:
+        - name: source
+          workspace: shared-data
+    - name: fetch-source-manifest
+      params:
+        - name: url
+          value: $(params.repo-url-manifest)
+        - name: revision
+          value: develop
+      runAfter:
+        - build-push
+      taskRef:
+        kind: ClusterTask
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: shared-data
+    - name: update-push
+      params:
+        - name: userName
+          value: $(params.git-user)
+        - name: userEmail
+          value: $(params.git-email)
+        - name: revision
+          value: develop
+        - name: subdirectory
+          value: project/$(params.repo-branch)
+        - name: fileName
+          value: deployment.y*ml
+        - name: replaceInFile
+          value: 'image: $(tasks.build-push.results.IMAGE_URL)'
+        - name: findInFile
+          value: 'image:.*'
+        - name: commitMessage
+          value: update image $(tasks.build-push.results.IMAGE_URL)
+      runAfter:
+        - fetch-source-manifest
+      taskRef:
+        kind: Task
+        name: git-update
+      workspaces:
+        - name: source
+          workspace: shared-data
+  workspaces:
+    - description: >
+        This workspace contains the cloned repo files, so they can be read by
+        the next task.
+      name: shared-data
